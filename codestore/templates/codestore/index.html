@@ -1,0 +1,149 @@
+﻿{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrastyle %}
+<style>
+ #content-related { float:right; width:29em; position:relative; margin-top: 1em; margin-right: -30em;}
+</style>
+<link rel='stylesheet' href='{{ STATIC_URL }}css/codemirror.css' />
+{{ block.super }}
+{% endblock %}
+
+{% block extrahead %}
+<script language="Javascript" type="text/javascript" src="{{ STATIC_URL }}js/jquery.js"></script>
+<script language="Javascript" type="text/javascript" src="{{ STATIC_URL }}js/codemirror.js"></script>
+<script language="Javascript" type="text/javascript">
+
+		$(function () {
+		window.editor = CodeMirror.fromTextArea($('#code_area')[0], {
+			//path: "/static/js/codemirror/",
+			//stylesheet: "/static/js/codemirror/css/pythoncolors.css",
+			lineNumbers: true,
+			indentUnit: 2,
+            tabSize: 2,
+			tabMode: "spaces",
+    		});
+		});
+</script>
+<style type="text/css">
+.CodeMirror-line-numbers {
+	width: 2.2em;
+	color: #aaa;
+	background-color: #eee;
+	text-align: right;
+	padding: .4em;
+	margin: 0;
+	font-family: monospace;
+	font-size: 10pt;
+	line-height: 1.1em;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<table>
+<tr>
+<td style='vertical-align:top'>
+<div style='padding: 10px;'>
+<a class='btn' href='{% url codestore_index  %}'>Create</a>&nbsp;&nbsp;
+<a class='btn' href="javascript:del();">Delete</a>&nbsp;&nbsp;
+<a class='btn' href="{% url codestore_tools %}">Tools Page</a>&nbsp;&nbsp;
+</div>
+
+<form id="codeform" onsubmit='return false'>
+<input type="hidden" name="orig_name" size=50 value="{{c.name}}" />
+<h3>Name</h3>
+<input type="text" name="name" size=50 value="{{c.name}}" />
+
+&nbsp;<input type="checkbox" name="aa" {% if c.allow_anonymous %}checked{%endif%} />Allow anonymous access
+&nbsp;<input type="checkbox" name="ai" {% if c.allow_input %}checked{%endif%} />Allow user input
+&nbsp;<input type="checkbox" name="show_in_tools" {% if c.show %}checked{%endif%} />Show in Tools
+<BR>
+<h3>Description</h3>
+<textarea id="desc" name="desc" cols=120 rows=3>{{c.description|default:''}}</textarea>
+
+<h3>Code</h3>
+<div style="border: 1px  solid #000">
+<textarea id="code_area" name="code" cols=120 rows=20>{{c.code|default:''}}</textarea>
+</div>
+<p>
+<button class='btn' onclick='run_ajax()'>Run</button>&nbsp;
+<button class='btn' onclick="run()">Run in new window</button>&nbsp;
+<button class='btn' onclick="save()" >Save</button>
+</p>
+<input type="checkbox" name="sd" {% if c.data %}checked{%endif%} />Save Data&nbsp;<a href="javascript:expand_input()">Expand</a>
+<BR><BR>
+<h3>Input</h3>
+<textarea name="data" cols=120 rows=1>{{c.data|default:''}}</textarea>
+&nbsp;<BR>
+<h3>Result</h3>
+<p style='border:1px solid #ddd;margin-top:20px'>
+<span id="output"></span>
+</p>
+</form>
+</td>
+<td class="nowrap" style='vertical-align:top'>
+<h3>Stored Code</h3>
+<ul>
+{% for i in clist %}
+<li><a href='{%url codestore_load i.name %}'>{{i.name}}</a>
+</li>
+{% endfor %}
+</ul>
+</td>
+</tr>
+</table>
+
+
+<script language="javascript">
+function expand_input(){
+    var f1 = $('#codeform')[0];
+    if (f1.data.rows > 5)
+        f1.data.rows = 1;
+    else
+        f1.data.rows = 20;
+    }
+
+function del() {
+    var f = $('#codeform');
+    if (confirm("Are you sure to remove？")) {
+        $.post("{% url codestore_delete c.name %}", f.serialize(), callback, 'json');
+    }
+}
+
+function run() {
+    var f1 = $('#codeform ')[0];
+    if (!f1.orig_name.value) {
+        alert("You need to save it with a name to run in a new window.");
+        return;
+    }
+    window.open("{% url codestore_run %}" + encodeURIComponent(f1.orig_name.value));
+}
+
+function run_ajax() {
+    var o = $('#output');
+    o.html('Loading...');
+    $('#code_area').val(editor.getValue());
+    var p = $('#codeform').serialize()
+    $.post('{% url codestore_run '' %}', p, function (ret) {
+        o.html(ret);
+    }, 'html');
+}
+
+function callback (ret) {
+    if (!ret.result) alert('failed');
+    if (ret.redirect) window.location.href = ret.redirect;
+}
+
+function save() {
+    var f = $('#codeform');
+    if (!f[0].name.value) {
+        alert('You need to specify a name first');
+        return;
+    }
+    $.post("{% url codestore_save c.name %}", f.serialize(), callback, 'json');
+}
+</script>
+{% endblock %}
+
