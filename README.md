@@ -18,6 +18,11 @@ Features
 * Optionally take user input before running
 * Optionally render html as result
 
+Screenshot
+----------
+
+![screenshot1](http://ledzep2.github.com/django-codestore/screenshot1.jpg)
+
 Usage
 -----
 
