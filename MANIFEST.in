@@ -1,2 +1,3 @@
 include setup.py MANIFEST.in
 recursive-include codestore/templates *
+recursive-include codestore/static *
